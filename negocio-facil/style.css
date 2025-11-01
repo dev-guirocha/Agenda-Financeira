@@ -1,3 +1,4 @@
+/* Conteúdo original de style.css */
 :root {
     --fundo: #0a0a0a; /* Fundo escuro */
     --dourado: #FFD700; /* Dourado */
@@ -261,9 +262,6 @@ h1 {
     transform: translateX(2px);
     background-color: rgba(0, 0, 0, 0.8);
 }
-
-
-
 
 /* Cores para os eventos */
 .evento-entrada {
@@ -873,5 +871,34 @@ input:focus, select:focus {
     .cor-grupo input[type="color"] {
         width: 40px;
         height: 40px;
+    }
+}
+
+/* CSS movido do <style> do index.html */
+.toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--preto);
+    color: var(--branco);
+    border: 2px solid var(--dourado);
+    padding: 15px;
+    z-index: 1000;
+    text-align: center;
+    max-width: 90%;
+    animation: slideIn 0.5s, fadeOut 0.5s 2.5s forwards;
+}
+
+@keyframes slideIn {
+    from { top: -100px; opacity: 0; }
+    to { top: 20px; opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { 
+        opacity: 0; 
+        top: -100px;
     }
 }
