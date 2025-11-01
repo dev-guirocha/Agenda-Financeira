@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>AGENDA FINANCEIRA</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="Imagem do WhatsApp de 2024-11-14 à(s) 21.42.02_a263ffdf.jpg">
+    <style>
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--preto);
+            color: var(--branco);
+            border: 2px solid var(--dourado);
+            padding: 15px;
+            z-index: 1000;
+            text-align: center;
+            max-width: 90%;
+            animation: slideIn 0.5s, fadeOut 0.5s 2.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { top: -100px; opacity: 0; }
+            to { top: 20px; opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { 
+                opacity: 0; 
+                top: -100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <img src="Imagem do WhatsApp de 2024-11-14 à(s) 21.42.02_a263ffdf.jpg" alt="Logo">
+        <h1>AGENDA FINANCEIRA</h1>
+        <h2>Seu app de gerenciamento e relatórios financeiros.</h2>
+    </div>
+    <div class="header-content">
+        <img src="Imagem do WhatsApp de 2024-11-14 à(s) 21.42.02_a263ffdf.jpg" alt="logo" class="logo" id="logo-img">
+        <h3 id="app-title">AGENDA FINANCEIRA</h3><br>
+    </div>
+
+    <script>
+        // Função de Toast
+        function mostrarToast(mensagem, tipo = 'info') {
+            // Remove toasts existentes
+            const toastExistente = document.querySelector('.toast');
+            if (toastExistente) {
+                toastExistente.remove();
+            }
+
+            const toast = document.createElement('div');
+            toast.classList.add('toast');
+            
+            // Adiciona cor baseada no tipo
+            switch(tipo) {
+                case 'sucesso':
+                    toast.style.borderColor = '#28A745';
+                    break;
+                case 'erro':
+                    toast.style.borderColor = '#DC3545';
+                    break;
+                case 'aviso':
+                    toast.style.borderColor = '#FFC107';
+                    break;
+                default:
+                    toast.style.borderColor = 'var(--dourado)';
+            }
+
+            toast.textContent = mensagem;
+            document.body.appendChild(toast);
+
+            // Remove o toast após 3 segundos
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+
+        // Esconder a tela de carregamento após 2 segundos
+        setTimeout(function() {
+            document.getElementById('loading-screen').style.display = 'none';
+        }, 2000); // 2000 milissegundos = 2 segundos
+    </script>
+    <div><button onclick="abrirModalPersonalizar()" class="botao-personalizar">
+        <span class="botao-texto">Personalizar App</span>
+    </button></div>
+    <div class="controles">
+        <button onclick="mesAnterior()" class="botao-seta" aria-label="Mês Anterior">
+            <span class="seta-icon">&#10094;</span>
+        </button>
+        <h2 id="mes-atual" style="color: var(--dourado); text-transform: uppercase; margin: 0 20px;"></h2>
+        <button onclick="proximoMes()" class="botao-seta" aria-label="Próximo Mês">
+            <span class="seta-icon">&#10095;</span>
+        </button>
+    </div>
+
+    <div class="calendario-container">
+        <!-- Cabeçalho dos dias da semana -->
+        <div class="cabecalho-calendario">
+            <div class="dia-semana">Dom</div>
+            <div class="dia-semana">Seg</div>
+            <div class="dia-semana">Ter</div>
+            <div class="dia-semana">Qua</div>
+            <div class="dia-semana">Qui</div>
+            <div class="dia-semana">Sex</div>
+            <div class="dia-semana">Sáb</div>
+        </div>
+    
+        <!-- Calendário (dias do mês) -->
+        <div class="calendario"></div>
+    </div> <!-- Fechando a div .calendario-container -->
+
+    <!-- Modal para exibir eventos do dia -->
+    <div id="modal-eventos-dia">
+        <div class="header">
+            <h3 id="modal-data"></h3>
+            <button onclick="fecharModalEventosDia()">FECHAR</button>
+        </div>
+        <div class="eventos-lista" id="lista-eventos-dia"></div>
+        <div class="controles" style="margin-top: 20px;">
+            <button onclick="abrirModalNovoEvento()" style="background-color: var(--dourado); color: var(--preto);">
+                <span class="botao-texto">Adicionar Evento</span>
+            </button>
+        </div>
+    </div>
+    
+    <div class="controles-principais">
+        <button onclick="gerarRelatorioMensal()" class="botao-relatorio">
+            <span class="botao-texto">Relatório Mensal</span>
+        </button>
+        <button onclick="gerarRelatorioAnual()" class="botao-relatorio">
+            <span class="botao-texto">Relatório Anual</span>
+        </button>
+        <button onclick="apagarDadosMes()" class="botao-resetar">
+            <span class="botao-texto">Limpar Mês Atual</span>
+        </button>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h3 style="color: var(--dourado); margin: 0;">ADICIONAR EVENTO</h3>
+                <p id="data-selecionada" style="color: var(--branco); margin: 5px 0;"></p> <!-- Exibe a data selecionada -->
+                <button onclick="fecharModal()" class="fechar-btn" style="background: none; border: none; color: var(--dourado); font-size: 20px; cursor: pointer;">×</button>
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px;">
+                <input type="text" id="evento-descricao" placeholder="Descrição" class="input-field" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--dourado); background: var(--preto); color: var(--dourado);">
+                <input type="number" id="evento-valor" placeholder="Valor R$" class="input-field" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--dourado); background: var(--preto); color: var(--dourado);">
+                <select id="evento-tipo" onchange="atualizarCamposEvento()" class="select-field" style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid var(--dourado); background: var(--preto); color: var(--dourado);">
+                    <option value="entrada">ENTRADA</option>
+                    <option value="saida">SAÍDA</option>
+                    <option value="normal">AGENDAMENTO</option>
+                </select>
+            </div>
+
+            <!-- Campos para Evento Normal -->
+            <div id="campos-evento-normal" style="display:none; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label for="evento-data" style="color: var(--dourado); display: block; margin-bottom: 5px;">Data do Evento:</label>
+                    <input type="date" id="evento-data" class="input-field" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--dourado); background: var(--preto); color: var(--dourado);">
+                </div>
+                <div class="form-group">
+                    <label for="evento-hora" style="color: var(--dourado); display: block; margin-bottom: 5px;">Hora do Evento:</label>
+                    <input type="time" id="evento-hora" class="input-field" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid var(--dourado); background: var(--preto); color: var(--dourado);">
+                </div>
+            </div>
+    
+            <div class="controles">
+                <button onclick="salvarEvento()" style="background: var(--dourado); color: var(--preto); padding: 10px 20px; border: none; cursor: pointer; margin-right: 10px;">SALVAR</button>
+                <button onclick="fecharModal()" style="background: var(--preto); color: var(--dourado); padding: 10px 20px; border: 1px solid var(--dourado); cursor: pointer;">CANCELAR</button>
+            </div>
+        </div>
+    </div>
+    <div id="modal-personalizar" class="modal">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h3 style="color: var(--dourado); margin: 0;">Personalizar App</h3>
+                <button onclick="fecharModalPersonalizar()" class="fechar-btn" style="background: none; border: none; color: var(--dourado); font-size: 20px; cursor: pointer;">×</button>
+            </div>
+            
+            <div class="form-group">
+                <input type="text" id="titulo-app" placeholder="Título do App" class="input-field">
+                
+                <div class="cores-container">
+                    <div class="cor-grupo">
+                        <input type="color" id="cor-titulo" title="Cor do Título">
+                        <label>Cor Título</label>
+                    </div>
+                    <div class="cor-grupo">
+                        <input type="color" id="cor-botao" title="Cor dos Botões">
+                        <label>Cor Botões</label>
+                    </div>
+                </div>
+
+                <div class="range-grupo">
+                    <input type="range" id="opacidade-fundo" min="0" max="1" step="0.1" value="0.8">
+                    <label>Opacidade do Fundo</label>
+                </div>
+
+                <div class="upload-grupo">
+                    <label class="upload-btn" for="adicionar-logo">
+                        <span class="botao-texto">Escolher Logo</span>
+                        <input type="file" accept="image/*" id="adicionar-logo" onchange="adicionarLogo(this.files)">
+                    </label>
+
+                    <label class="upload-btn" for="adicionar-fundo">
+                        <span class="botao-texto">Escolher Fundo</span>
+                        <input type="file" accept="image/*" id="adicionar-fundo" onchange="adicionarFundo(this.files)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="button-container">
+                <button onclick="salvarPersonalizacao(), fecharModalPersonalizar()" class="botao-salvar">
+                    <span class="botao-texto">Salvar</span>
+                </button>
+                <button onclick="restaurarConfiguracoes(), fecharModalPersonalizar()" class="botao-resetar">
+                    <span class="botao-texto">Restaurar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let dataAtual = new Date();
+        let diaSelecionado = null;
+        let eventos = JSON.parse(localStorage.getItem('eventos')) || {};
+    
+        function atualizarCalendario() {
+            const calendario = document.querySelector('.calendario');
+            calendario.innerHTML = '';
+    
+            document.getElementById('mes-atual').textContent = 
+                dataAtual.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    
+            const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1);
+            const ultimoDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, 0);
+            
+            // Calcular o número total de células necessárias
+            const diasNoMes = ultimoDia.getDate();
+            const diasAntes = primeiroDia.getDay();
+            const diasDepois = 6 - ultimoDia.getDay();
+            const totalCelulas = diasNoMes + diasAntes + diasDepois;
+            
+            // Adicionar dias vazios do mês anterior
+            for (let i = 0; i < diasAntes; i++) {
+                calendario.appendChild(criarDiaVazio());
+            }
+    
+            // Adicionar dias do mês atual
+            for (let dia = 1; dia <= diasNoMes; dia++) {
+                calendario.appendChild(criarDia(dia));
+            }
+            
+            // Adicionar dias vazios do próximo mês para completar a grade
+            for (let i = 0; i < diasDepois; i++) {
+                calendario.appendChild(criarDiaVazio());
+            }
+        }
+    
+        function criarDia(numero) {
+            const div = document.createElement('div');
+            div.className = 'dia';
+            div.innerHTML = `<div class="dia-numero">${numero}</div><div class="indicadores"></div>`;
+            
+            const dataStr = `${dataAtual.getFullYear()}-${(dataAtual.getMonth()+1).toString().padStart(2, '0')}-${numero.toString().padStart(2, '0')}`;
+            
+            if (eventos[dataStr]) {
+                const indicadoresDiv = div.querySelector('.indicadores');
+                const tiposEventos = new Set();
+                
+                eventos[dataStr].forEach(evento => {
+                    tiposEventos.add(evento.tipo);
+                });
+                
+                tiposEventos.forEach(tipo => {
+                    const indicador = document.createElement('div');
+                    indicador.className = 'evento-indicador';
+                    
+                    switch (tipo) {
+                        case 'entrada':
+                            indicador.style.backgroundColor = '#28a745'; // Verde para entrada
+                            break;
+                        case 'saida':
+                            indicador.style.backgroundColor = '#dc3545'; // Vermelho para saída
+                            break;
+                        case 'normal':
+                            indicador.style.backgroundColor = '#007bff'; // Azul para agendamento normal
+                            break;
+                    }
+                    
+                    indicadoresDiv.appendChild(indicador);
+                });
+            }
+            
+            div.onclick = () => mostrarEventosDia(numero);
+            return div;
+        }
+
+        function criarDiaVazio() {
+            const div = document.createElement('div');
+            div.className = 'dia';
+            return div;
+        }
+    
+        function mostrarEventosDia(dia) {
+            const dataStr = `${dataAtual.getFullYear()}-${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}-${dia.toString().padStart(2, '0')}`;
+            const modalData = document.getElementById('modal-data');
+            const listaEventos = document.getElementById('lista-eventos-dia');
+            const modal = document.getElementById('modal-eventos-dia');
+            
+            // Salvar dia selecionado para uso em outras funções
+            diaSelecionado = dia;
+            
+            modalData.textContent = `${dia} de ${dataAtual.toLocaleDateString('pt-BR', { month: 'long' })} de ${dataAtual.getFullYear()}`;
+            listaEventos.innerHTML = '';
+            
+            if (eventos[dataStr] && eventos[dataStr].length > 0) {
+                eventos[dataStr].forEach((evento, index) => {
+                    const eventoDiv = document.createElement('div');
+                    eventoDiv.className = 'evento-detalhes';
+                    
+                    switch (evento.tipo) {
+                        case 'entrada':
+                            eventoDiv.style.borderLeftColor = '#28a745'; // Verde para entrada
+                            break;
+                        case 'saida':
+                            eventoDiv.style.borderLeftColor = '#dc3545'; // Vermelho para saída
+                            break;
+                        case 'normal':
+                            eventoDiv.style.borderLeftColor = '#007bff'; // Azul para agendamento normal
+                            break;
+                    }
+                    
+                    let conteudoEvento = `<h4>${evento.descricao}</h4>`;
+                    
+                    if (evento.valor) {
+                        conteudoEvento += `<p>Valor: R$ ${evento.valor}</p>`;
+                    }
+                    
+                    if (evento.tipo === 'normal') {
+                        conteudoEvento += `<p>Horário: ${evento.hora}</p>`;
+                    }
+                    
+                    conteudoEvento += `<button onclick="abrirModalApagar('${dataStr}', ${index})">Excluir</button>`;
+                    
+                    eventoDiv.innerHTML = conteudoEvento;
+                    listaEventos.appendChild(eventoDiv);
+                });
+            } else {
+                listaEventos.innerHTML = '<p>Nenhum evento para este dia.</p>';
+            }
+            
+            modal.style.display = 'block';
+        }
+        
+        function fecharModalEventosDia() {
+            document.getElementById('modal-eventos-dia').style.display = 'none';
+        }
+
+        function abrirModalNovoEvento() {
+            const dataModal = document.getElementById('modal-data').textContent;
+            const partes = dataModal.split(' de ');
+            
+            // Garante que estamos obtendo o dia correto, independente de ter 1 ou 2 dígitos
+            const dia = partes[0];
+            const mes = partes[1];
+            const ano = partes[2];
+            
+            diaSelecionado = parseInt(dia);
+            
+            // Mapeia o nome do mês para o número correspondente
+            const mesesNomes = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+            const mesNumero = mesesNomes.indexOf(mes.toLowerCase()) + 1;
+            
+            // Define a data no formato YYYY-MM-DD
+            const dataFormatada = `${ano}-${mesNumero.toString().padStart(2, '0')}-${diaSelecionado.toString().padStart(2, '0')}`;
+            
+            document.getElementById('evento-data').value = dataFormatada;
+            document.getElementById('evento-tipo').selectedIndex = 0; // Reseta para o primeiro tipo
+            document.getElementById('data-selecionada').textContent = `Data Selecionada: ${dia} de ${mes} de ${ano}`; // Exibe a data no modal
+            document.getElementById('modal').style.display = 'block';
+            atualizarCamposEvento();
+        }
+    
+        function fecharModal() {
+            document.getElementById('modal').style.display = 'none';
+            // Limpa os campos do modal ao fechar
+            document.getElementById('evento-descricao').value = '';
+            document.getElementById('evento-valor').value = '';
+        }
+
+        function atualizarCamposEvento() {
+            const tipo = document.getElementById('evento-tipo').value;
+            const camposEventoNormal = document.getElementById('campos-evento-normal');
+            const campoValor = document.getElementById('evento-valor');
+            
+            // Esconde todos os campos primeiro
+            camposEventoNormal.style.display = 'none';
+            campoValor.style.display = 'none';
+            
+            // Mostra os campos relevantes baseado no tipo
+            switch(tipo) {
+                case 'normal':
+                    camposEventoNormal.style.display = 'block';
+                    break;
+                case 'entrada':
+                case 'saida':
+                    campoValor.style.display = 'block';
+                    break;
+            }
+        }
+        
+        function salvarEvento() {
+            const descricao = document.getElementById('evento-descricao').value;
+            const tipo = document.getElementById('evento-tipo').value;
+            const dataStr = `${dataAtual.getFullYear()}-${(dataAtual.getMonth() + 1).toString().padStart(2, '0')}-${diaSelecionado.toString().padStart(2, '0')}`;
+
+            // Verifica se os campos obrigatórios estão preenchidos
+            if (!descricao) {
+                mostrarToast('Por favor, preencha a descrição do evento', 'erro');
+                return;
+            }
+
+            let eventoObj = {
+                descricao,
+                tipo
+            };
+
+            // Adiciona campos específicos baseado no tipo de evento
+            switch(tipo) {
+                case 'entrada':
+                case 'saida':
+                    let valor = document.getElementById('evento-valor').value;
+                    if (!valor) {
+                        mostrarToast('Por favor, preencha o valor', 'erro');
+                        return;
+                    }
+                    // Normaliza o valor para aceitar vírgula ou ponto como separador decimal
+                    valor = parseFloat(valor.replace(',', '.'));
+                    if (isNaN(valor)) {
+                        mostrarToast('Valor inválido. Use números com vírgula ou ponto.', 'erro');
+                        return;
+                    }
+                    // Formata o valor apenas com decimais se necessário
+                    eventoObj.valor = valor % 1 === 0 ? valor.toString() : valor.toFixed(2);
+                    break;
+
+                case 'normal':
+                    const hora = document.getElementById('evento-hora').value;
+                    if (!hora) {
+                        mostrarToast('Por favor, preencha o horário do evento', 'erro');
+                        return;
+                    }
+                    eventoObj.data = dataStr;
+                    eventoObj.hora = hora;
+                    break;
+            }
+
+            if (!eventos[dataStr]) {
+                eventos[dataStr] = [];
+            }
+
+            eventos[dataStr].push(eventoObj);
+            localStorage.setItem('eventos', JSON.stringify(eventos));
+
+            // Atualizar o calendário imediatamente
+            atualizarCalendario();
+
+            // Se o modal de eventos do dia estiver aberto, atualizar a lista de eventos
+            if (document.getElementById('modal-eventos-dia').style.display === 'block') {
+                mostrarEventosDia(diaSelecionado);
+            }
+
+            mostrarToast('Evento registrado com sucesso', 'sucesso');
+            fecharModal();
+        }
+        
+        function abrirModalApagar(dataStr, index) {
+            const evento = eventos[dataStr][index];
+            
+            // Criar o modal de confirmação personalizado
+            const modalConfirmacao = document.createElement('div');
+            modalConfirmacao.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: var(--preto);
+                border: 1px solid var(--dourado);
+                padding: 20px;
+                width: 90%;
+                max-width: 300px;
+                z-index: 1000;
+                color: var(--branco);
+                text-align: center;
+            `;
+        
+            modalConfirmacao.innerHTML = `
+                <h3 style="color: var(--dourado);">Confirmar Exclusão</h3>
+                <p>Deseja apagar o evento:</p>
+                <p><strong>${evento.descricao}</strong></p>
+                ${evento.valor ? `<p>Valor: R$ ${evento.valor}</p>` : ''}
+                <div style="margin-top: 20px;">
+                    <button onclick="confirmarExclusao('${dataStr}', ${index})" 
+                            style="margin-right: 10px; background-color: #ff4444; border-color: #ff4444;">
+                        Confirmar
+                    </button>
+                    <button onclick="this.parentElement.parentElement.remove()" 
+                            style="background-color: var(--preto);">
+                        Cancelar
+                    </button>
+                </div>
+            `;
+        
+            document.body.appendChild(modalConfirmacao);
+        }
+        
+        function confirmarExclusao(dataStr, index) {
+            eventos[dataStr].splice(index, 1);
+            if (eventos[dataStr].length === 0) {
+                delete eventos[dataStr];
+            }
+            localStorage.setItem('eventos', JSON.stringify(eventos));
+            atualizarCalendario();
+        
+            // Atualiza o modal de eventos do dia
+            if (document.getElementById('modal-eventos-dia').style.display === 'block') {
+                mostrarEventosDia(diaSelecionado);
+            }
+        
+            // Remove o modal de confirmação
+            document.querySelector('[style*="position: fixed"]').remove();
+        
+            // Adiciona notificação de sucesso
+            mostrarToast('Evento excluído com sucesso', 'sucesso');
+        }
+        
+        function mesAnterior() {
+            dataAtual.setMonth(dataAtual.getMonth() - 1);
+            fecharModalEventosDia(); // Fecha o modal de eventos do dia
+            atualizarCalendario();
+        }
+        
+        function proximoMes() {
+            dataAtual.setMonth(dataAtual.getMonth() + 1);
+            fecharModalEventosDia(); // Fecha o modal de eventos do dia
+            atualizarCalendario();
+        }
+    
+        // Função auxiliar para formatar valores
+function formatarValor(valor) {
+    return valor % 1 === 0 ? valor.toString() : valor.toFixed(2);
+}
+
+// Modificação na função gerarRelatorioMensal
+function gerarRelatorioMensal() {
+    let totalEntrada = 0;
+    let totalSaida = 0;
+    let maiorEntrada = { valor: 0, descricao: '' };
+    let maiorSaida = { valor: 0, descricao: '' };
+    let qtdEntradas = 0;
+    let qtdSaidas = 0;
+
+    const relatorioDiv = document.createElement('div');
+    relatorioDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: var(--preto);
+        border: 2px solid var(--dourado);
+        padding: 20px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 1000;
+        color: var(--branco);
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    `;
+
+    const mesAtual = dataAtual.getMonth() + 1;
+    const anoAtual = dataAtual.getFullYear();
+    const nomeMes = dataAtual.toLocaleDateString('pt-BR', { month: 'long' });
+
+    let relatorioHTML = `
+        <h3 style="color: var(--dourado); text-align: center; margin-bottom: 20px;">
+            Relatório Detalhado de ${nomeMes} ${anoAtual}
+        </h3>
+    `;
+
+    let eventosPorDia = {};
+    let temEventos = false;
+
+    // Agrupa eventos por dia e calcula totais
+    for (const [data, eventosDia] of Object.entries(eventos)) {
+        const [ano, mes, dia] = data.split('-');
+        if (parseInt(ano) === anoAtual && parseInt(mes) === mesAtual) {
+            temEventos = true;
+            eventosPorDia[dia] = eventosDia;
+
+            eventosDia.forEach(evento => {
+                const valor = parseFloat(evento.valor || 0);
+                if (evento.tipo === 'entrada') {
+                    totalEntrada += valor;
+                    qtdEntradas++;
+                    if (valor > maiorEntrada.valor) {
+                        maiorEntrada = { valor, descricao: evento.descricao };
+                    }
+                } else if (evento.tipo === 'saida') {
+                    totalSaida += valor;
+                    qtdSaidas++;
+                    if (valor > maiorSaida.valor) {
+                        maiorSaida = { valor, descricao: evento.descricao };
+                    }
+                }
+            });
+        }
+    }
+
+    if (!temEventos) {
+        relatorioHTML += '<p style="text-align: center; color: var(--dourado);">Nenhum evento registrado neste mês.</p>';
+    } else {
+        // Resumo Geral
+        relatorioHTML += `
+            <div style="margin-bottom: 20px; padding: 15px; background-color: rgba(255,215,0,0.1); border-radius: 5px;">
+                <h4 style="color: var(--dourado); margin-bottom: 10px;">Resumo Geral</h4>
+                <p>Total de Movimentações: ${qtdEntradas + qtdSaidas}</p>
+                <p>Quantidade de Entradas: ${qtdEntradas}</p>
+                <p>Quantidade de Saídas: ${qtdSaidas}</p>
+                <p>Média de Entradas: R$ ${qtdEntradas > 0 ? formatarValor(totalEntrada / qtdEntradas) : '0'}</p>
+                <p>Média de Saídas: R$ ${qtdSaidas > 0 ? formatarValor(totalSaida / qtdSaidas) : '0'}</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--dourado);">Maiores Movimentações</h4>
+                ${maiorEntrada.descricao ? `
+                    <p>Maior Entrada: ${maiorEntrada.descricao} - R$ ${formatarValor(maiorEntrada.valor)}</p>
+                ` : ''}
+                ${maiorSaida.descricao ? `
+                    <p>Maior Saída: ${maiorSaida.descricao} - R$ ${formatarValor(maiorSaida.valor)}</p>
+                ` : ''}
+            </div>
+
+            <h4 style="color: var(--dourado);">Detalhamento por Dia</h4>
+        `;
+
+        // Detalhamento diário
+        Object.entries(eventosPorDia)
+            .sort(([a], [b]) => parseInt(a) - parseInt(b))
+            .forEach(([dia, eventosDia]) => {
+                let entradaDia = 0;
+                let saidaDia = 0;
+
+                relatorioHTML += `
+                    <div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--dourado); border-radius: 5px;">
+                        <strong>Dia ${dia}</strong>
+                        <ul style="list-style: none; padding: 0; margin: 10px 0;">
+                `;
+
+                eventosDia.forEach(evento => {
+                    const valor = parseFloat(evento.valor || 0);
+                    if (evento.tipo === 'entrada') entradaDia += valor;
+                    if (evento.tipo === 'saida') saidaDia += valor;
+
+                    relatorioHTML += `
+                        <li style="margin-bottom: 5px;">
+                            <span style="color: ${evento.tipo === 'entrada' ? '#28a745' : '#dc3545'};">
+                                ${evento.descricao} - R$ ${formatarValor(valor)}
+                            </span>
+                        </li>
+                    `;
+                });
+
+                relatorioHTML += `
+                        </ul>
+                        <div style="font-size: 0.9em; margin-top: 5px;">
+                            <p>Total do dia: R$ ${formatarValor(entradaDia - saidaDia)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+        // Balanço Final
+        const saldoFinal = totalEntrada - totalSaida;
+        const percentualGasto = totalEntrada > 0 ? (totalSaida / totalEntrada) * 100 : 0;
+
+        relatorioHTML += `
+            <div style="margin-top: 20px; border-top: 2px solid var(--dourado); padding-top: 15px;">
+                <h4 style="color: var(--dourado);">Balanço Final</h4>
+                <p>Total de Entradas: <span style="color: #28a745;">R$ ${formatarValor(totalEntrada)}</span></p>
+                <p>Total de Saídas: <span style="color: #dc3545;">R$ ${formatarValor(totalSaida)}</span></p>
+                <p>Saldo do Mês: <span style="color: ${saldoFinal >= 0 ? '#28a745' : '#dc3545'}">
+                    R$ ${formatarValor(saldoFinal)}</span></p>
+                <p>Percentual Gasto: ${formatarValor(percentualGasto)}%</p>
+                <p>Status: <strong style="color: ${saldoFinal >= 0 ? '#28a745' : '#dc3545'}">
+                    ${saldoFinal >= 0 ? 'Positivo' : 'Negativo'}</strong></p>
+            </div>
+        `;
+    }
+
+    relatorioHTML += `
+        <button onclick="this.parentElement.remove()" style="
+            display: block;
+            margin: 20px auto 0;
+            background-color: var(--dourado);
+            color: var(--preto);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        ">Fechar Relatório</button>
+    `;
+
+    relatorioDiv.innerHTML = relatorioHTML;
+    document.body.appendChild(relatorioDiv);
+}
+
+// Modificação na função gerarRelatorioAnual
+function gerarRelatorioAnual() {
+    let totalEntradaAnual = 0;
+    let totalSaidaAnual = 0;
+    let melhorMes = { saldo: -Infinity, nome: '' };
+    let piorMes = { saldo: Infinity, nome: '' };
+    let mesesComEventos = {};
+
+    const relatorioDiv = document.createElement('div');
+    relatorioDiv.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: var(--preto);
+        border: 2px solid var(--dourado);
+        padding: 20px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        z-index: 1000;
+        color: var(--branco);
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    `;
+
+    const anoAtual = dataAtual.getFullYear();
+    let relatorioHTML = `
+        <h3 style="color: var(--dourado); text-align: center; margin-bottom: 20px;">
+            Relatório Anual Detalhado de ${anoAtual}
+        </h3>
+    `;
+
+    let temEventos = false;
+
+    // Processamento inicial dos dados
+    for (const [data, eventosDia] of Object.entries(eventos)) {
+        const [ano, mes] = data.split('-');
+        if (parseInt(ano) === anoAtual) {
+            temEventos = true;
+            if (!mesesComEventos[mes]) {
+                mesesComEventos[mes] = {
+                    entradas: 0,
+                    saidas: 0,
+                    qtdEntradas: 0,
+                    qtdSaidas: 0,
+                    maiorEntrada: { valor: 0, descricao: '' },
+                    maiorSaida: { valor: 0, descricao: '' }
+                };
+            }
+
+            eventosDia.forEach(evento => {
+                const valor = parseFloat(evento.valor || 0);
+                if (evento.tipo === 'entrada') {
+                    mesesComEventos[mes].entradas += valor;
+                    mesesComEventos[mes].qtdEntradas++;
+                    if (valor > mesesComEventos[mes].maiorEntrada.valor) {
+                        mesesComEventos[mes].maiorEntrada = { valor, descricao: evento.descricao };
+                    }
+                    totalEntradaAnual += valor;
+                } else if (evento.tipo === 'saida') {
+                    mesesComEventos[mes].saidas += valor;
+                    mesesComEventos[mes].qtdSaidas++;
+                    if (valor > mesesComEventos[mes].maiorSaida.valor) {
+                        mesesComEventos[mes].maiorSaida = { valor, descricao: evento.descricao };
+                    }
+                    totalSaidaAnual += valor;
+                }
+            });
+
+            // Calcula saldo do mês para determinar melhor e pior mês
+            const saldoMes = mesesComEventos[mes].entradas - mesesComEventos[mes].saidas;
+            const nomeMes = new Date(anoAtual, parseInt(mes) - 1).toLocaleDateString('pt-BR', { month: 'long' });
+            
+            if (saldoMes > melhorMes.saldo) {
+                melhorMes = { saldo: saldoMes, nome: nomeMes };
+            }
+            if (saldoMes < piorMes.saldo) {
+                piorMes = { saldo: saldoMes, nome: nomeMes };
+            }
+        }
+    }
+
+    if (!temEventos) {
+        relatorioHTML += '<p style="text-align: center; color: var(--dourado);">Nenhum evento registrado neste ano.</p>';
+    } else {
+        // Visão Geral Anual
+        const saldoAnual = totalEntradaAnual - totalSaidaAnual;
+        const percentualGastoAnual = totalEntradaAnual > 0 ? (totalSaidaAnual / totalEntradaAnual) * 100 : 0;
+
+        relatorioHTML += `
+            <div style="margin-bottom: 20px; padding: 15px; background-color: rgba(255,215,0,0.1); border-radius: 5px;">
+                <h4 style="color: var(--dourado);">Visão Geral do Ano</h4>
+                <p>Total de Entradas: <span style="color: #28a745;">R$ ${formatarValor(totalEntradaAnual)}</span></p>
+                <p>Total de Saídas: <span style="color: #dc3545;">R$ ${formatarValor(totalSaidaAnual)}</span></p>
+                <p>Saldo Anual: <span style="color: ${saldoAnual >= 0 ? '#28a745' : '#dc3545'}">
+                    R$ ${formatarValor(saldoAnual)}</span></p>
+                <p>Percentual Gasto: ${formatarValor(percentualGastoAnual)}%</p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <h4 style="color: var(--dourado);">Análise de Desempenho</h4>
+                <p>Melhor Mês: ${melhorMes.nome} (R$ ${formatarValor(melhorMes.saldo)})</p>
+                <p>Pior Mês: ${piorMes.nome} (R$ ${formatarValor(piorMes.saldo)})</p>
+            </div>
+
+            <h4 style="color: var(--dourado);">Detalhamento Mensal</h4>
+        `;
+
+        // Detalhamento por mês
+        Object.entries(mesesComEventos)
+            .sort(([a], [b]) => parseInt(a) - parseInt(b))
+            .forEach(([mes, dados]) => {
+                const nomeMes = new Date(anoAtual, parseInt(mes) - 1).toLocaleDateString('pt-BR', { month: 'long' });
+                const saldoMes = dados.entradas - dados.saidas;
+                const percentualGastoMes = dados.entradas > 0 ? (dados.saidas / dados.entradas) * 100 : 0;
+
+                relatorioHTML += `
+                    <div style="margin-bottom: 15px; padding: 10px; border: 1px solid var(--dourado); border-radius: 5px;">
+                        <h4 style="color: var(--dourado); margin: 0 0 10px;">${nomeMes}</h4>
+                        <div style="margin-bottom: 10px;">
+                            <p>Entradas: R$ ${formatarValor(dados.entradas)} (${dados.qtdEntradas} operações)</p>
+                            <p>Saídas: R$ ${formatarValor(dados.saidas)} (${dados.qtdSaidas} operações)</p>
+                            <p>Saldo: <span style="color: ${saldoMes >= 0 ? '#28a745' : '#dc3545'}">
+                                R$ ${formatarValor(saldoMes)}</span></p>
+                            <p>Percentual Gasto: ${formatarValor(percentualGastoMes)}%</p>
+                        </div>
+                        <div style="font-size: 0.9em;">
+                            <p>Maior Entrada: ${dados.maiorEntrada.descricao} - R$ ${formatarValor(dados.maiorEntrada.valor)}</p>
+                            <p>Maior Saída: ${dados.maiorSaida.descricao} - R$ ${formatarValor(dados.maiorSaida.valor)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+        // Conclusão e Recomendações
+        relatorioHTML += `
+            <div style="margin-top: 20px; border-top: 2px solid var(--dourado); padding-top: 15px;">
+                <h4 style="color: var(--dourado);">Conclusão</h4>
+                <p>Status Anual: <strong style="color: ${saldoAnual >= 0 ? '#28a745' : '#dc3545'}">
+                    ${saldoAnual >= 0 ? 'Positivo' : 'Negativo'}</strong></p>
+                <p>Média Mensal de Entradas: R$ ${formatarValor(totalEntradaAnual / 12)}</p>
+                <p>Média Mensal de Saídas: R$ ${formatarValor(totalSaidaAnual / 12)}</p>
+            </div>
+        `;
+    }
+
+    relatorioHTML += `
+        <button onclick="this.parentElement.remove()" style="
+            display: block;
+            margin: 20px auto 0;
+            background-color: var(--dourado);
+            color: var(--preto);
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        ">Fechar Relatório</button>
+    `;
+
+    relatorioDiv.innerHTML = relatorioHTML;
+    document.body.appendChild(relatorioDiv);
+}
+
+        function apagarDadosMes() {
+            const mesAtual = dataAtual.getMonth() + 1;
+            const anoAtual = dataAtual.getFullYear();
+        
+            // Criar modal de confirmação
+            const modalConfirmacao = document.createElement('div');
+            modalConfirmacao.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background-color: var(--preto);
+                border: 2px solid var(--dourado);
+                padding: 20px;
+                width: 90%;
+                max-width: 300px;
+                z-index: 1000;
+                color: var(--branco);
+                text-align: center;
+            `;
+        
+            modalConfirmacao.innerHTML = `
+                <h3 style="color: var(--dourado);">Confirmação</h3>
+                <p>Deseja realmente apagar todos os dados do mês atual?</p>
+                <div style="display: flex; justify-content: space-around;">
+                    <button id="btn-confirmar-reset" style="background-color: #dc3545; border-color: #dc3545;">
+                        Confirmar
+                    </button>
+                    <button id="btn-cancelar-reset">
+                        Cancelar
+                    </button>
+                </div>
+            `;
+        
+            document.body.appendChild(modalConfirmacao);
+        
+            // Adicionar event listeners
+            document.getElementById('btn-confirmar-reset').addEventListener('click', () => {
+                // Remover eventos do mês atual
+                Object.keys(eventos).forEach(data => {
+                    const [ano, mes] = data.split('-');
+                    if (parseInt(ano) === anoAtual && parseInt(mes) === mesAtual) {
+                        delete eventos[data];
+                    }
+                });
+        
+                // Salvar no localStorage
+                localStorage.setItem('eventos', JSON.stringify(eventos));
+        
+                // Atualizar calendário
+                atualizarCalendario();
+        
+                // Atualiza o modal de eventos do dia, se estiver aberto
+                if (document.getElementById('modal-eventos-dia').style.display === 'block') {
+                    mostrarEventosDia(diaSelecionado);
+                }
+        
+                // Remover modal de confirmação
+                modalConfirmacao.remove();
+        
+                // Mostrar toast de sucesso
+                mostrarToast('Dados do mês apagados com sucesso!', 'sucesso');
+            });
+        
+            document.getElementById('btn-cancelar-reset').addEventListener('click', () => {
+                // Simplesmente remover o modal
+                modalConfirmacao.remove();
+            });
+        }
+
+         // Função para fechar o modal
+function fecharModalPersonalizar() {
+    const modal = document.getElementById('modal-personalizar');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Função para carregar configurações personalizadas
+function carregarConfiguracoesPersonalizadas() {
+    try {
+        const configuracoesSalvas = JSON.parse(localStorage.getItem('configuracoes')) || {};
+
+        // Título do app
+        const appTitle = document.getElementById('app-title');
+        if (appTitle) {
+            if (configuracoesSalvas.titulo) {
+                appTitle.textContent = configuracoesSalvas.titulo;
+            }
+            if (configuracoesSalvas.cor) {
+                appTitle.style.color = configuracoesSalvas.cor;
+            }
+        }
+
+        // Fundo
+        if (configuracoesSalvas.opacidadeFundo) {
+            document.body.style.backgroundColor = `rgba(30, 30, 30, ${configuracoesSalvas.opacidadeFundo})`;
+        }
+        if (configuracoesSalvas.fundo) {
+            document.body.style.backgroundImage = `url('${configuracoesSalvas.fundo}')`;
+        }
+
+        // Botões
+        const botoes = document.querySelectorAll('button');
+        if (configuracoesSalvas.corBotao) {
+            botoes.forEach(button => {
+                button.style.backgroundColor = configuracoesSalvas.corBotao;
+                button.style.color = '#FFFFFF';
+            });
+        }
+
+        // Logo
+        const logoImg = document.getElementById('logo-img');
+        if (logoImg && configuracoesSalvas.logo) {
+            logoImg.src = configuracoesSalvas.logo;
+        }
+
+    } catch (error) {
+        console.error("Erro ao carregar configurações personalizadas:", error);
+    }
+}
+
+function salvarPersonalizacao() {
+    try {
+        const tituloApp = document.getElementById('titulo-app');
+        const corTitulo = document.getElementById('cor-titulo');
+        const opacidadeFundo = document.getElementById('opacidade-fundo');
+        const corBotao = document.getElementById('cor-botao');
+
+        const configuracoesSalvas = JSON.parse(localStorage.getItem('configuracoes')) || {};
+
+        const novasConfiguracoes = {
+            titulo: tituloApp.value,
+            cor: corTitulo.value,
+            opacidadeFundo: opacidadeFundo.value,
+            corBotao: corBotao.value,
+            logo: configuracoesSalvas.logo,
+            fundo: configuracoesSalvas.fundo
+        };
+
+        const appTitle = document.getElementById('app-title');
+        appTitle.textContent = novasConfiguracoes.titulo;
+        appTitle.style.color = novasConfiguracoes.cor;
+        document.body.style.backgroundColor = `rgba(30, 30, 30, ${novasConfiguracoes.opacidadeFundo})`;
+
+        const botoes = document.querySelectorAll('button');
+        botoes.forEach(button => {
+            button.style.backgroundColor = novasConfiguracoes.corBotao;
+            button.style.color = '#FFFFFF';
+        });
+
+        localStorage.setItem('configuracoes', JSON.stringify(novasConfiguracoes));
+        fecharModalPersonalizar();
+    } catch (error) {
+        console.error("Erro ao salvar personalização:", error);
+    }
+}
+
+function abrirModalPersonalizar() {
+    try {
+        const modal = document.getElementById('modal-personalizar');
+        if (!modal) throw new Error("Modal não encontrado");
+        
+        modal.style.display = 'flex';
+
+        // Carrega configurações salvas
+        const configuracoesSalvas = JSON.parse(localStorage.getItem('configuracoes')) || {};
+
+        // Preenche os campos do modal com valores salvos ou padrões
+        const elementos = {
+            'titulo-app': configuracoesSalvas.titulo || document.getElementById('app-title').textContent,
+            'cor-titulo': configuracoesSalvas.cor || '#FFD700',
+            'cor-botao': configuracoesSalvas.corBotao || '#000000',
+            'opacidade-fundo': configuracoesSalvas.opacidadeFundo || '0.8',
+            'fonte-titulo': configuracoesSalvas.fonte || 'Arial, sans-serif',
+            'borda-titulo': configuracoesSalvas.borda || 'none'
+        };
+
+        // Aplica os valores aos campos
+        for (let id in elementos) {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.value = elementos[id];
+            }
+        }
+
+        // Aplica a cor atual ao título
+        const appTitle = document.getElementById('app-title');
+        if (appTitle) {
+            appTitle.style.color = elementos['cor-titulo'];
+            appTitle.style.fontFamily = elementos['fonte-titulo'];
+            appTitle.style.border = elementos['borda-titulo'];
+        }
+
+    } catch (error) {
+        console.error("Erro ao abrir modal:", error);
+        alert("Erro ao abrir o modal: " + error.message);
+    }
+}
+
+function restaurarConfiguracoes() {
+    try {
+        const configuracoesPadrao = {
+            titulo: 'Agenda Financeira',
+            cor: '#FFD700',
+            opacidadeFundo: 0.8,
+            corBotao: '#000000',
+            fonte: 'Arial, sans-serif',
+            borda: 'none',
+            logo: 'Imagem do WhatsApp de 2024-11-14 à(s) 21.42.02_a263ffdf.jpg', // Caminho da logo padrão
+            background_color: '#000'
+        };
+
+        // Aplica as configurações padrão
+        const appTitle = document.getElementById('app-title');
+        if (appTitle) {
+            appTitle.textContent = configuracoesPadrao.titulo;
+            appTitle.style.color = configuracoesPadrao.cor;
+            appTitle.style.fontFamily = configuracoesPadrao.fonte;
+            appTitle.style.border = configuracoesPadrao.borda;
+        }
+
+        // Restaura logo padrão
+        const logoImg = document.getElementById('logo-img');
+        if (logoImg) {
+            logoImg.src = configuracoesPadrao.logo;
+        }
+
+        document.body.style.backgroundColor = `rgba(30, 30, 30 , ${configuracoesPadrao.opacidadeFundo})`;
+        document.body.style.backgroundImage = 'none';
+
+        // Atualiza os campos do modal
+        const elementos = {
+            'titulo-app': configuracoesPadrao.titulo,
+            'cor-titulo': configuracoesPadrao.cor,
+            'cor-botao': configuracoesPadrao.corBotao,
+            'opacidade-fundo': configuracoesPadrao.opacidadeFundo,
+            'fonte-titulo': configuracoesPadrao.fonte,
+            'borda-titulo': configuracoesPadrao.borda
+        };
+
+        for (let id in elementos) {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.value = elementos[id];
+            }
+        }
+
+        // Atualiza a cor dos botões
+        const botoes = document.querySelectorAll('button');
+        botoes.forEach(button => {
+            button.style.backgroundColor = configuracoesPadrao.corBotao;
+            button.style.color = '#FFFFFF';
+        });
+
+        // Limpa as configurações do localStorage
+        localStorage.removeItem('configuracoes');
+
+        fecharModalPersonalizar();
+    } catch (error) {
+        console.error("Erro ao restaurar configurações:", error);
+        alert("Erro ao restaurar configurações: " + error.message);
+    }
+}
+
+// Função para adicionar logo
+function adicionarLogo(files) {
+    if (files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.getElementById('logo-img').src = e.target.result;
+            const configuracoesSalvas = JSON.parse(localStorage.getItem('configuracoes')) || {};
+            configuracoesSalvas.logo = e.target.result;
+            localStorage.setItem('configuracoes', JSON.stringify(configuracoesSalvas));
+        };
+        reader.readAsDataURL(files[0]);
+    }
+}
+
+// Função para adicionar fundo
+function adicionarFundo(files) {
+    if (files.length > 0) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            document.body.style.backgroundImage = `url('${e.target.result}')`;
+            const configuracoesSalvas = JSON.parse(localStorage.getItem('configuracoes')) || {};
+            configuracoesSalvas.fundo = e.target.result;
+            localStorage.setItem('configuracoes', JSON.stringify(configuracoesSalvas));
+        };
+        reader.readAsDataURL(files[0]);
+    }
+}
+
+// Chame esta função quando o aplicativo inicializar
+document.addEventListener('DOMContentLoaded', carregarConfiguracoesPersonalizadas());
+
+// Adicionar eventos de clique nos exemplos de fonte
+document.querySelectorAll('.fonte-exemplo').forEach(item => {
+    item.addEventListener('click', () => {
+        const fonteSelecionada = getComputedStyle(item).fontFamily;
+        document.getElementById('app-title').style.fontFamily = fonteSelecionada;
+        document.getElementById('fonte-titulo').value = fonteSelecionada; // Atualiza o campo de entrada
+    });
+});
+
+// Adicionar eventos de clique nos exemplos de borda
+document.querySelectorAll('.borda-exemplo').forEach(item => {
+    item.addEventListener('click', () => {
+        const bordaSelecionada = getComputedStyle(item).border;
+        document.getElementById('app-title').style.border = bordaSelecionada;
+        document.getElementById('borda-titulo').value = bordaSelecionada; // Atualiza o campo de entrada
+    });
+});
+
+        // Inicializar calendário
+        atualizarCalendario();
+        
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registrado com sucesso');
+                    })
+                    .catch(err => {
+                        console.log('Erro no registro do ServiceWorker:', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
